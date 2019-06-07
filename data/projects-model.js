@@ -1,53 +1,61 @@
-const knex = require('knex');
-const knexConfig = require('../knexfile');
+const db = require('./dbConfig');
+const mappers = require("./mappers");
 
-
-const db = knex(knexConfig.development);
-
- module.exports = {
-  find,
-  findById,
-  add,
+module.exports = {
+  get,
+  insert,
   update,
-  remove
+  remove,
+  getProjectActions
 };
 
- function find() {
-return db('projects')
-// .join('actions.projects_id','projects.id', '=', 'action.id' )
-// .select({actions: 'actions.id'})
+function get(id) {
+  let query = db("projects as p");
 
- }
+  if (id) {
+    query.where("p.id", id).first();
 
- function findById(id) {
-    return db('projects')
-    .where({ id:id })
-    .first()
+    const promises = [query, this.getProjectActions(id)]; // [ projects, actions ]
+
+    return Promise.all(promises).then(function(results) {
+      let [project, actions] = results;
+
+      if (project) {
+        project.actions = actions;
+
+        return mappers.projectToBody(project);
+      } else {
+        return null;
+      }
+    });
+  }
+
+  return query.then(projects => {
+    return projects.map(project => mappers.projectToBody(project));
+  });
 }
 
- function add(project) {
-    return db('projects')
-    .insert(project, 'id')
-    .then(([id]) => {
-        return findById(id)
-    })
+function insert(project) {
+  return db("projects")
+    .insert(project)
+    .then(([id]) => this.get(id));
 }
 
- function update() {
-    return db('projects')
-    .where({id})
+function update(id, changes) {
+  return db("projects")
+    .where("id", id)
     .update(changes)
-    .then(count => {
-        if (count > 0) {
-            return findById(id)
-        }else{
-            return null
-        }
-    })
+    .then(count => (count > 0 ? this.get(id) : null));
 }
 
- function remove() {
-    return db('projects')
-    .where(id)
-    .del()
-} 
+function remove(id) {
+  return db("projects")
+    .where("id", id)
+    .del();
+}
+
+function getProjectActions(projectId) {
+  return db("actions")
+    .where("project_id", projectId)
+    .then(actions => actions.map(action => mappers.actionToBody(action)));
+}

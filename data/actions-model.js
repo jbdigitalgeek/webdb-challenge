@@ -1,71 +1,35 @@
-const knexConfig = require('../knexfile');
+const db = require('./dbConfig');
+const mappers = require('./mappers');
 
+module.exports = {
+  get: function(id) {
+    let query = db('actions');
 
-const db = knex(knexConfig.development);
+    if (id) {
+      return query
+        .where('id', id)
+        .first()
+        .then(action => mappers.actionToBody(action));
+    }
 
- module.exports = {
-  find,
-  findById,
-  add,
-  update,
-  remove
+    return query.then(actions => {
+      return actions.map(action => mappers.actionToBody(action));
+    });
+  },
+  insert: function(action) {
+    return db('actions')
+      .insert(action)
+      .then(([id]) => this.get(id));
+  },
+  update: function(id, changes) {
+    return db('actions')
+      .where('id', id)
+      .update(changes)
+      .then(count => (count > 0 ? this.get(id) : null));
+  },
+  remove: function(id) {
+    return db('actions')
+      .where('id', id)
+      .del();
+  },
 };
-
- function find() {
-  return db('actions')
-    .join('projects', 'actions.project_id', '=', 'projects.id')
-    .select(
-      { project: 'projects.name' },
-      { 'project description': 'projects.description' },
-      { 'action id': 'actions.id' },
-      'actions.description',
-      'actions.notes',
-      'actions.completed',
-      'actions.created_at',
-      'actions.updated_at'
-    );
-}
-
- function findById() {
-  return db('actions')
-    .where({ 'actions.project_id': id })
-    .first()
-    .join('projects', 'actions.project_id', '=', 'projects.id')
-    .select(
-      { project: 'projects.name' },
-      { 'project description': 'projects.description' },
-      { 'action id': 'actions.id' },
-      'actions.description',
-      'actions.notes',
-      'actions.completed',
-      'actions.created_at',
-      'actions.updated_at'
-    );
-}
-
- function add(action) {
-  return db('actions')
-    .insert(action, 'id')
-    .then(([id]) => {
-      return findById(id);
-    });
-}
-
- function update() {
-  return db('actions')
-    .where({ id })
-    .update(changes)
-    .then(count => {
-      if (count > 0) {
-        return findById(id);
-      } else {
-        return null;
-      }
-    });
-}
-
- function remove() {
-  return db('actions')
-    .where({ id })
-    .del();
-}
