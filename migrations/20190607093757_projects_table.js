@@ -1,43 +1,39 @@
-
 exports.up = function(knex, Promise) {
-    return knex.schema
-        .createTable('projects', tbl => {
-            tbl.increments();
-            tbl.string('project_name', 255)
-                .notNullable()
-                .unique();
-            
-            tbl.text('description');
+  return knex.schema
+    .createTable('projects', tbl => {
+      tbl.increments();
+      tbl
+        .string('name', 255)
+        .notNullable()
+        .unique();
 
-            tbl.boolean('finished')
-                .defaultTo(false);
-            
-            tbl.timestamps(true, true);
-        })
-        .createTable('actions', tbl => {
-            tbl.increments();
+      tbl.text('description');
 
-            tbl.text('action_description');
+      tbl.boolean('completed').defaultTo(false);
 
-            tbl.text('action_notes');
-
-            tbl.boolean('finished')
-                .defaultTo(false);
-            
-            tbl.timestamps(true, true);
-            
-            tbl
-                .integer('project_id')
-                .unsigned()
-                .references('id')
-                .inTable('projects')
-                .onDelete('RESTRICT')
-                .onUpdate('CASCADE');
+    //   tbl.timestamps(true, true);
     })
+    .createTable('actions', tbl => {
+      tbl.increments();
+      tbl
+      .integer('project_id')
+      .unsigned()
+      .notNullable()
+      .references('id')
+      .inTable('projects')
+      .onDelete('RESTRICT')
+      .onUpdate('CASCADE');
+      
+
+        tbl.string('description', 128).notNullable();
+        tbl.text('notes').notNullable();
+        tbl.boolean('completed').defaultTo(false);
+        tbl.timestamps(true, true);
+
+        
+    });
 };
 
 exports.down = function(knex, Promise) {
-    return knex.schema
-        .dropTableIfExists('actions')
-        .dropTableIfExists('projects');
+  return knex.schema.dropTableIfExists('actions').dropTableIfExists('projects');
 };
